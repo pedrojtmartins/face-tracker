@@ -1,1 +1,1 @@
-# face-tracker
+# Face Tracker
