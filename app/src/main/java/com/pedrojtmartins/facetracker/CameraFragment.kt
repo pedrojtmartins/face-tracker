@@ -16,9 +16,12 @@ import com.pedrojtmartins.facetracker.databinding.FragmentCameraBinding
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_camera.*
 
-private const val TAG = "CameraFragment"
+// Permissions
 private const val REQUEST_CODE_PERMISSIONS = 1
 private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+
+// Camera config
+private val DEFAULT_CAMERA_SELECTOR = CameraSelector.DEFAULT_FRONT_CAMERA
 
 class CameraFragment : Fragment() {
 
@@ -49,7 +52,7 @@ class CameraFragment : Fragment() {
         }
     }
 
-    private fun startCamera(cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA) {
+    private fun startCamera(cameraSelector: CameraSelector = DEFAULT_CAMERA_SELECTOR) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
 
         cameraProviderFuture.addListener({
@@ -64,7 +67,7 @@ class CameraFragment : Fragment() {
                     bindToLifecycle(this@CameraFragment, cameraSelector, preview)
                 }
             } catch (exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
+                Log.e(CameraFragment::class.simpleName, "Use case binding failed. $exc")
             }
 
         }, ContextCompat.getMainExecutor(requireContext()))
