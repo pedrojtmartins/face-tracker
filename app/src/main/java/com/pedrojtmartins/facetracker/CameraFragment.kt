@@ -8,13 +8,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.pedrojtmartins.facetracker.FaceAnalyzer.FaceAnalyzerResult
 import com.pedrojtmartins.facetracker.databinding.FragmentCameraBinding
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_camera.*
+import java.util.concurrent.Executors.newSingleThreadExecutor
 
 // Permissions
 private const val REQUEST_CODE_PERMISSIONS = 1
@@ -52,19 +55,20 @@ class CameraFragment : Fragment() {
         }
     }
 
+    // Camera setup
     private fun startCamera(cameraSelector: CameraSelector = DEFAULT_CAMERA_SELECTOR) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
 
         cameraProviderFuture.addListener({
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder()
-                    .build()
-                    .also { it.setSurfaceProvider(binding.previewView.surfaceProvider) }
-
             try {
-                with(cameraProvider) {
+                with(cameraProviderFuture.get()) {
                     unbindAll()
-                    bindToLifecycle(this@CameraFragment, cameraSelector, preview)
+                    bindToLifecycle(
+                            this@CameraFragment,
+                            cameraSelector,
+                            buildCameraPreview(),
+                            buildFaceUseCase()
+                    )
                 }
             } catch (exc: Exception) {
                 Log.e(CameraFragment::class.simpleName, "Use case binding failed. $exc")
@@ -73,6 +77,18 @@ class CameraFragment : Fragment() {
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
+    private fun buildCameraPreview() = Preview.Builder()
+            .build()
+            .also { it.setSurfaceProvider(binding.previewView.surfaceProvider) }
+
+    private fun buildFaceUseCase() = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+            .also {
+                it.setAnalyzer(newSingleThreadExecutor(), FaceAnalyzer(FaceAnalyserListener()))
+            }
+
+    // Permissions
     override fun onRequestPermissionsResult(
             requestCode: Int,
             permissions: Array<out String>,
@@ -94,5 +110,16 @@ class CameraFragment : Fragment() {
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private inner class FaceAnalyserListener : FaceAnalyzer.Listener {
+
+        override fun onFaceAnalyzerResult(result: FaceAnalyzerResult) {
+            // TODO Handle face
+        }
+
+        override fun onFaceAnalyserFailure(exception: Exception) {
+            // TODO Handle failure
+        }
     }
 }
